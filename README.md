@@ -38,7 +38,26 @@ python run.py examples/chair.png --output-dir output/
 ```
 This will save the reconstructed 3D model to `output/`. You can also specify more than one image path separated by spaces. The default options takes about **6GB VRAM** for a single image input.
 
-If you would like to output a texture instead of vertex colors, use the `--bake-texture` option. You may also use `--texture-resolution` to specify the resolution in pixels of the output texture.
+#### Texture Baking (テクスチャ付き出力)
+If you would like to output a texture instead of vertex colors, use the `--bake-texture` option:
+
+```sh
+# Generate OBJ with texture (recommended)
+python run.py examples/chair.png --bake-texture --texture-resolution 2048
+
+# Multiple images with texture
+python run.py examples/chair.png examples/flamingo.png --bake-texture
+
+# Custom output directory and texture resolution
+python run.py examples/chair.png --bake-texture --texture-resolution 4096 --output-dir output_textured/
+```
+
+This will generate:
+- `mesh.obj`: 3D model with UV coordinates
+- `mesh.mtl`: Material file with texture reference
+- `texture.png`: Texture atlas image
+
+You may also use `--texture-resolution` to specify the resolution in pixels of the output texture (default: 2048).
 
 For detailed usage of this script, use `python run.py --help`.
 
