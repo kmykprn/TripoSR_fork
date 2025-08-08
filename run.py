@@ -1,6 +1,5 @@
 import logging
 import os
-import time
 
 import numpy as np
 import rembg
@@ -12,31 +11,10 @@ from tsr.system import TSR
 from tsr.utils import remove_background, resize_foreground, save_video
 from tsr.bake_texture import bake_texture
 from tsr_pipeline.cli import parse_args
+from tsr_pipeline.timer import Timer
 
 
-class Timer:
-    def __init__(self):
-        self.items = {}
-        self.time_scale = 1000.0  # ms
-        self.time_unit = "ms"
-
-    def start(self, name: str) -> None:
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-        self.items[name] = time.time()
-        logging.info(f"{name} ...")
-
-    def end(self, name: str) -> float:
-        if name not in self.items:
-            return
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-        start_time = self.items.pop(name)
-        delta = time.time() - start_time
-        t = delta * self.time_scale
-        logging.info(f"{name} finished in {t:.2f}{self.time_unit}.")
-
-
+# グローバルTimerインスタンスを作成
 timer = Timer()
 
 
