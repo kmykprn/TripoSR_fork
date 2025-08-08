@@ -46,10 +46,6 @@ class TriplaneNeRFRenderer(BaseModule):
     ) -> Dict[str, torch.Tensor]:
         input_shape = positions.shape[:-1]
         positions = positions.view(-1, 3)
-        
-        # Debug flag - only print first call
-        if not hasattr(self, '_debug_printed'):
-            self._debug_printed = False
 
         # positions in (-radius, radius)
         # normalized to (-1, 1) for grid sample
@@ -62,22 +58,9 @@ class TriplaneNeRFRenderer(BaseModule):
                 (x[..., [0, 1]], x[..., [0, 2]], x[..., [1, 2]]),
                 dim=-3,
             )
-            
-            input_tensor = rearrange(triplane, "Np Cp Hp Wp -> Np Cp Hp Wp", Np=3)
-            grid_tensor = rearrange(indices2D, "Np N Nd -> Np () N Nd", Np=3)
-            
-            # Debug: Check device of tensors (only once)
-            if not self._debug_printed:
-                print(f"[DEBUG] _query_chunk - x device: {x.device}")
-                print(f"[DEBUG] _query_chunk - indices2D device: {indices2D.device}")
-                print(f"[DEBUG] _query_chunk - triplane device: {triplane.device}")
-                print(f"[DEBUG] _query_chunk - input_tensor device: {input_tensor.device}")
-                print(f"[DEBUG] _query_chunk - grid_tensor device: {grid_tensor.device}")
-                self._debug_printed = True
-            
             out: torch.Tensor = F.grid_sample(
-                input_tensor,
-                grid_tensor,
+                rearrange(triplane, "Np Cp Hp Wp -> Np Cp Hp Wp", Np=3),
+                rearrange(indices2D, "Np N Nd -> Np () N Nd", Np=3),
                 align_corners=False,
                 mode="bilinear",
             )
@@ -91,11 +74,6 @@ class TriplaneNeRFRenderer(BaseModule):
             net_out: Dict[str, torch.Tensor] = decoder(out)
             return net_out
 
-        # Debug: Check positions device (only once)
-        if not self._debug_printed:
-            print(f"[DEBUG] query_triplane - positions device: {positions.device}")
-            print(f"[DEBUG] query_triplane - positions shape: {positions.shape}")
-        
         if self.chunk_size > 0:
             net_out = chunk_batch(_query_chunk, self.chunk_size, positions)
         else:
