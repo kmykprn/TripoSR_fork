@@ -18,6 +18,42 @@ from tsr_pipeline.timer import Timer
 timer = Timer()
 
 
+def preprocess_image_for_3d(image_path, output_dir, image_index, no_remove_bg, foreground_ratio, rembg_session):
+    """3D生成のための画像前処理（背景除去、正規化など）を行う
+    
+    Args:
+        image_path: 入力画像のパス
+        output_dir: 出力ディレクトリ
+        image_index: 画像のインデックス
+        no_remove_bg: 背景除去をスキップするかどうか
+        foreground_ratio: 前景のサイズ比率
+        rembg_session: rembgのセッション（背景除去する場合）
+    
+    Returns:
+        前処理済みの画像（PIL.ImageまたはNumPy配列）
+    """
+    if no_remove_bg:
+        # 背景除去なし：単純に画像を読み込んでRGB変換
+        return np.array(Image.open(image_path).convert("RGB"))
+    else:
+        # 背景除去あり：背景除去、前景調整、アルファチャンネル処理
+        image = remove_background(Image.open(image_path), rembg_session)
+        image = resize_foreground(image, foreground_ratio)
+        image = np.array(image).astype(np.float32) / 255.0
+        
+        # アルファチャンネル処理（透明部分をグレーに）
+        image = image[:, :, :3] * image[:, :, 3:4] + (1 - image[:, :, 3:4]) * 0.5
+        image = Image.fromarray((image * 255.0).astype(np.uint8))
+        
+        # 出力ディレクトリの作成と前処理済み画像の保存
+        output_path = os.path.join(output_dir, str(image_index))
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+        image.save(os.path.join(output_path, "input.png"))
+        
+        return image
+
+
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO
 )
@@ -45,24 +81,24 @@ timer.end("Initializing model")
 timer.start("Processing images")
 images = []
 
+# rembgセッションの初期化
 if args.no_remove_bg:
     rembg_session = None
 else:
     rembg_session = rembg.new_session()
 
+# 各画像を3D生成用に前処理
 for i, image_path in enumerate(args.image):
-    if args.no_remove_bg:
-        image = np.array(Image.open(image_path).convert("RGB"))
-    else:
-        image = remove_background(Image.open(image_path), rembg_session)
-        image = resize_foreground(image, args.foreground_ratio)
-        image = np.array(image).astype(np.float32) / 255.0
-        image = image[:, :, :3] * image[:, :, 3:4] + (1 - image[:, :, 3:4]) * 0.5
-        image = Image.fromarray((image * 255.0).astype(np.uint8))
-        if not os.path.exists(os.path.join(output_dir, str(i))):
-            os.makedirs(os.path.join(output_dir, str(i)))
-        image.save(os.path.join(output_dir, str(i), f"input.png"))
+    image = preprocess_image_for_3d(
+        image_path=image_path,
+        output_dir=output_dir,
+        image_index=i,
+        no_remove_bg=args.no_remove_bg,
+        foreground_ratio=args.foreground_ratio,
+        rembg_session=rembg_session
+    )
     images.append(image)
+    
 timer.end("Processing images")
 
 for i, image in enumerate(images):
