@@ -58,9 +58,19 @@ class TriplaneNeRFRenderer(BaseModule):
                 (x[..., [0, 1]], x[..., [0, 2]], x[..., [1, 2]]),
                 dim=-3,
             )
+            # Debug: Check device of tensors
+            print(f"[DEBUG] _query_chunk - x device: {x.device}")
+            print(f"[DEBUG] _query_chunk - indices2D device: {indices2D.device}")
+            print(f"[DEBUG] _query_chunk - triplane device: {triplane.device}")
+            
+            input_tensor = rearrange(triplane, "Np Cp Hp Wp -> Np Cp Hp Wp", Np=3)
+            grid_tensor = rearrange(indices2D, "Np N Nd -> Np () N Nd", Np=3)
+            print(f"[DEBUG] _query_chunk - input_tensor device: {input_tensor.device}")
+            print(f"[DEBUG] _query_chunk - grid_tensor device: {grid_tensor.device}")
+            
             out: torch.Tensor = F.grid_sample(
-                rearrange(triplane, "Np Cp Hp Wp -> Np Cp Hp Wp", Np=3),
-                rearrange(indices2D, "Np N Nd -> Np () N Nd", Np=3),
+                input_tensor,
+                grid_tensor,
                 align_corners=False,
                 mode="bilinear",
             )
@@ -74,6 +84,10 @@ class TriplaneNeRFRenderer(BaseModule):
             net_out: Dict[str, torch.Tensor] = decoder(out)
             return net_out
 
+        # Debug: Check positions device
+        print(f"[DEBUG] query_triplane - positions device: {positions.device}")
+        print(f"[DEBUG] query_triplane - positions shape: {positions.shape}")
+        
         if self.chunk_size > 0:
             net_out = chunk_batch(_query_chunk, self.chunk_size, positions)
         else:
