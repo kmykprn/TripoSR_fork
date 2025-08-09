@@ -4,6 +4,7 @@ import os
 import numpy as np
 import rembg
 import torch
+import trimesh
 import xatlas
 from PIL import Image
 
@@ -52,6 +53,39 @@ def bg_removal_and_normalize_image(image_path, output_dir, image_index, no_remov
         image.save(os.path.join(output_path, "input.png"))
         
         return image
+
+
+def export_glb_with_texture(out_mesh_path, out_texture_path, mesh, bake_output):
+    """GLB形式でUV座標付きメッシュとテクスチャを出力する
+    
+    Args:
+        out_mesh_path: GLBファイルの出力パス
+        out_texture_path: テクスチャ画像の出力パス
+        mesh: 元のtrimeshオブジェクト
+        bake_output: bake_texture関数の出力辞書
+    """
+    # テクスチャ画像の準備と保存
+    texture_array = (bake_output["colors"] * 255.0).astype(np.uint8)
+    texture_image = Image.fromarray(texture_array).transpose(Image.FLIP_TOP_BOTTOM)
+    texture_image.save(out_texture_path)
+    
+    # UV座標付きメッシュの作成
+    textured_mesh = trimesh.Trimesh(
+        vertices=mesh.vertices[bake_output["vmapping"]],
+        faces=bake_output["indices"],
+        vertex_normals=mesh.vertex_normals[bake_output["vmapping"]]
+    )
+    
+    # UV座標をメッシュに設定（フロントエンドで別途テクスチャを適用するため、materialは設定しない）
+    # UV座標は各面の各頂点に対して設定する必要がある
+    uv_coords = bake_output["uvs"]
+    textured_mesh.visual = trimesh.visual.TextureVisuals(
+        uv=uv_coords,
+        material=None
+    )
+    
+    # GLB形式で出力
+    textured_mesh.export(out_mesh_path)
 
 
 def generate_3d_mesh_from_image(image, image_index, model, device, output_dir, args):
@@ -113,10 +147,25 @@ def generate_3d_mesh_from_image(image, image_index, model, device, output_dir, a
         bake_output = bake_texture(meshes[0], model, scene_codes[0], args.texture_resolution)
         timer.end("Baking texture")
         
-        # UV座標付きOBJファイルとテクスチャ画像を出力
+        # 出力形式による分岐
         timer.start("Exporting mesh and texture")
-        xatlas.export(out_mesh_path, meshes[0].vertices[bake_output["vmapping"]], bake_output["indices"], bake_output["uvs"], meshes[0].vertex_normals[bake_output["vmapping"]])
-        Image.fromarray((bake_output["colors"] * 255.0).astype(np.uint8)).transpose(Image.FLIP_TOP_BOTTOM).save(out_texture_path)
+        
+        if args.model_save_format == "glb":
+            # GLB形式での出力（UV座標付きメッシュとテクスチャを別々に保存）
+            try:
+                export_glb_with_texture(out_mesh_path, out_texture_path, meshes[0], bake_output)
+            except Exception as e:
+                logging.error(f"Failed to export GLB with texture: {e}")
+                logging.info("Falling back to OBJ format...")
+                # フォールバック：OBJ形式で出力
+                out_mesh_path = out_mesh_path.replace(".glb", ".obj")
+                xatlas.export(out_mesh_path, meshes[0].vertices[bake_output["vmapping"]], bake_output["indices"], bake_output["uvs"], meshes[0].vertex_normals[bake_output["vmapping"]])
+                Image.fromarray((bake_output["colors"] * 255.0).astype(np.uint8)).transpose(Image.FLIP_TOP_BOTTOM).save(out_texture_path)
+        else:
+            # OBJ形式での出力（既存処理）
+            xatlas.export(out_mesh_path, meshes[0].vertices[bake_output["vmapping"]], bake_output["indices"], bake_output["uvs"], meshes[0].vertex_normals[bake_output["vmapping"]])
+            Image.fromarray((bake_output["colors"] * 255.0).astype(np.uint8)).transpose(Image.FLIP_TOP_BOTTOM).save(out_texture_path)
+        
         timer.end("Exporting mesh and texture")
     else:
         # テクスチャベイキングなし：頂点カラー付きメッシュを直接出力
