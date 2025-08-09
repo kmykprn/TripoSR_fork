@@ -83,14 +83,20 @@ def export_glb_with_texture(out_mesh_path, out_texture_path, mesh, bake_output):
         material=material
     )
     
-    # 新しいメッシュを作成（vertex_normalsは設定しない - UV座標が失われる問題を回避）
+    # 新しいメッシュを作成（法線を明示的に設定）
+    # 元のメッシュから法線を取得（なければ自動計算される）
+    original_normals = mesh.vertex_normals[bake_output["vmapping"]]
+    
     textured_mesh = trimesh.Trimesh(
         vertices=mesh.vertices[bake_output["vmapping"]],
         faces=bake_output["indices"],
-        visual=texture_visual
+        vertex_normals=original_normals,  # 法線を明示的に設定
+        visual=texture_visual  # visualも同時に設定
     )
     
     # GLB形式で出力
+    # 注: trimeshのバグにより、TextureVisualsとvertex_normalsの両方が
+    # GLBに正しく出力されない可能性があります（trimesh issue #1296）
     textured_mesh.export(out_mesh_path)
 
 
