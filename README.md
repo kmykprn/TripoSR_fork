@@ -41,16 +41,30 @@ This will save the reconstructed 3D model to `output/`. You can also specify mor
 #### Output Formats
 You can specify the output format using the `--model-save-format` option (default: `obj`).
 
-For **GLB format**, use:
+##### GLB Format (Vertex Colors)
+For **GLB format with vertex colors** (single file), use:
 ```sh
 python run.py examples/chair.png --output-dir output/ --model-save-format glb
 ```
-**Note:** When using GLB format, do not use the `--bake-texture` option as it is not currently compatible with GLB output.
 
+##### GLB Format with Separate Texture
+For **GLB format with UV coordinates and separate texture file**, use:
+```sh
+python run.py examples/chair.png --output-dir output/ --model-save-format glb --bake-texture --texture-resolution 2048
+```
+This will generate:
+- `mesh.glb`: A GLB file with UV coordinates
+- `texture.png`: A separate texture image file
+
+This format is ideal for web applications using libraries like react-three-fiber, where you can load the GLB mesh and texture separately and combine them in the frontend.
+
+##### OBJ Format with Texture
 For **OBJ format with texture**, use:
 ```sh
-python run.py examples/chair.png --output-dir output/ --bake-texture --texture-resolution 2048
+python run.py examples/chair.png --output-dir output/ --model-save-format obj --bake-texture --texture-resolution 2048
 ```
+This will generate OBJ, MTL, and texture files.
+
 If you would like to output a texture instead of vertex colors, use the `--bake-texture` option. You may also use `--texture-resolution` to specify the resolution in pixels of the output texture.
 
 For detailed usage of this script, use `python run.py --help`.
