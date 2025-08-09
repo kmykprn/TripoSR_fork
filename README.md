@@ -38,6 +38,19 @@ python run.py examples/chair.png --output-dir output/
 ```
 This will save the reconstructed 3D model to `output/`. You can also specify more than one image path separated by spaces. The default options takes about **6GB VRAM** for a single image input.
 
+#### Output Formats
+You can specify the output format using the `--model-save-format` option (default: `obj`).
+
+For **GLB format**, use:
+```sh
+python run.py examples/chair.png --output-dir output/ --model-save-format glb
+```
+**Note:** When using GLB format, do not use the `--bake-texture` option as it is not currently compatible with GLB output.
+
+For **OBJ format with texture**, use:
+```sh
+python run.py examples/chair.png --output-dir output/ --bake-texture --texture-resolution 2048
+```
 If you would like to output a texture instead of vertex colors, use the `--bake-texture` option. You may also use `--texture-resolution` to specify the resolution in pixels of the output texture.
 
 For detailed usage of this script, use `python run.py --help`.
