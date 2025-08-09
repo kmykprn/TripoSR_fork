@@ -47,16 +47,30 @@ For **GLB format with vertex colors** (single file), use:
 python run.py examples/chair.png --output-dir output/ --model-save-format glb
 ```
 
-##### GLB Format with Separate Texture
-For **GLB format with UV coordinates and separate texture file**, use:
+##### GLB Format with Embedded Texture
+For **GLB format with embedded texture**, use:
 ```sh
 python run.py examples/chair.png --output-dir output/ --model-save-format glb --bake-texture --texture-resolution 2048
 ```
 This will generate:
-- `mesh.glb`: A GLB file with UV coordinates
-- `texture.png`: A separate texture image file
+- `mesh.glb`: A complete GLB file with:
+  - UV coordinates (TEXCOORD_0)
+  - Normal vectors (NORMAL) 
+  - Embedded texture image
+  - PBR material settings
+- `texture.png`: The texture image as a separate file (for compatibility)
 
-This format is ideal for web applications using libraries like react-three-fiber, where you can load the GLB mesh and texture separately and combine them in the frontend.
+The GLB file contains everything needed for rendering:
+- **Geometry**: Vertices, faces, and normal vectors for proper lighting
+- **Texture**: High-resolution texture embedded directly in the GLB file
+- **UV Mapping**: Texture coordinates for accurate texture placement
+- **Material**: PBR material with baseColorTexture reference
+
+This format is ideal for:
+- Web applications using Three.js or react-three-fiber
+- Game engines like Unity or Unreal Engine
+- 3D viewers and AR/VR applications
+- Any platform that supports the glTF 2.0 standard
 
 ##### OBJ Format with Texture
 For **OBJ format with texture**, use:
