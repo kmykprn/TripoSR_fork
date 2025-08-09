@@ -69,19 +69,25 @@ def export_glb_with_texture(out_mesh_path, out_texture_path, mesh, bake_output):
     texture_image = Image.fromarray(texture_array).transpose(Image.FLIP_TOP_BOTTOM)
     texture_image.save(out_texture_path)
     
-    # UV座標付きメッシュの作成
+    # マテリアルを作成（テクスチャ画像オブジェクトを使用）
+    material = trimesh.visual.material.PBRMaterial(
+        baseColorTexture=texture_image,  # Imageオブジェクトを直接渡す
+        baseColorFactor=[1.0, 1.0, 1.0, 1.0],
+        metallicFactor=0.0,
+        roughnessFactor=1.0
+    )
+    
+    # UV座標付きのビジュアルを作成
+    texture_visual = trimesh.visual.TextureVisuals(
+        uv=bake_output["uvs"],
+        material=material
+    )
+    
+    # 新しいメッシュを作成（vertex_normalsは設定しない - UV座標が失われる問題を回避）
     textured_mesh = trimesh.Trimesh(
         vertices=mesh.vertices[bake_output["vmapping"]],
         faces=bake_output["indices"],
-        vertex_normals=mesh.vertex_normals[bake_output["vmapping"]]
-    )
-    
-    # UV座標をメッシュに設定（フロントエンドで別途テクスチャを適用するため、materialは設定しない）
-    # UV座標は各面の各頂点に対して設定する必要がある
-    uv_coords = bake_output["uvs"]
-    textured_mesh.visual = trimesh.visual.TextureVisuals(
-        uv=uv_coords,
-        material=None
+        visual=texture_visual
     )
     
     # GLB形式で出力
