@@ -96,15 +96,6 @@ def create_parser():
         help="If specified, save a NeRF-rendered video. Default: false"
     )
     
-    # 座標系設定
-    parser.add_argument(
-        "--orientation",
-        default="original",
-        type=str,
-        choices=["original", "threejs"],
-        help="Orientation of the output model. 'original': Z-up coordinate system (default TripoSR output), 'threejs': Y-up Z-backward coordinate system for Three.js. Default: 'original'"
-    )
-    
     return parser
 
 
