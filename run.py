@@ -147,6 +147,16 @@ def generate_3d_mesh_from_image(image, image_index, model, device, output_dir, a
     meshes = model.extract_mesh(scene_codes, not args.bake_texture, resolution=args.mc_resolution)
     timer.end("Extracting mesh")
     
+    # ========== Step 3.5: 座標系の変換（オプション）==========
+    if args.orientation == "threejs":
+        # Z-up (TripoSR default) から Y-up Z-backward (Three.js) への変換
+        # X軸周りに-90度回転: Y→Z, Z→-Y
+        for mesh in meshes:
+            mesh.apply_transform(trimesh.transformations.rotation_matrix(-np.pi/2, [1, 0, 0]))
+            # Z軸を反転してZ-backwardにする
+            mesh.vertices[:, 2] *= -1
+        logging.info("Applied Three.js orientation (Y-up, Z-backward)")
+    
     # ========== Step 4 & 5: メッシュの出力（テクスチャ有無で処理分岐）==========
     out_mesh_path = os.path.join(output_dir, str(image_index), f"mesh.{args.model_save_format}")
     
