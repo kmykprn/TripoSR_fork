@@ -4,6 +4,7 @@ import os
 import numpy as np
 import rembg
 import torch
+import trimesh
 import xatlas
 from PIL import Image
 
@@ -63,8 +64,6 @@ def export_glb_with_texture(out_mesh_path, out_texture_path, mesh, bake_output):
         mesh: 元のtrimeshオブジェクト
         bake_output: bake_texture関数の出力辞書
     """
-    import trimesh
-    
     # テクスチャ画像の準備と保存
     texture_array = (bake_output["colors"] * 255.0).astype(np.uint8)
     texture_image = Image.fromarray(texture_array).transpose(Image.FLIP_TOP_BOTTOM)
